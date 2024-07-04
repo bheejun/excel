@@ -4,7 +4,5 @@ import org.apache.poi.ss.usermodel.Workbook
 
 interface GenerateExcelByVendorService {
 
-    fun generateExcelByVendor(workbook: Workbook, excelName: String) : Workbook{
-
-    }
+    fun generateExcelByVendor(sourceWorkbook: Workbook,targetWorkbook: Workbook, excelName: String) : Workbook
 }
