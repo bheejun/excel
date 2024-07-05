@@ -2,6 +2,7 @@ package wise.co.kr.excel_processor.controller
 
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -18,12 +19,15 @@ class ExcelController(
 ) {
 
     @PostMapping("/upload")
-    fun uploadExcel(@RequestParam("files") files: List<MultipartFile>): ResponseEntity<String> {
+    fun uploadExcel(@RequestParam("files") files: List<MultipartFile>): ResponseEntity<ByteArray> {
         return try {
-            val result = excelProcessService.processExcel(files)
-            ResponseEntity.ok("Excel processed successfully. Rows processed: $result")
+            val excelBytes = excelProcessService.processExcel(files)
+            ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=combined_excel.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelBytes)
         } catch (e: Exception) {
-            ResponseEntity.badRequest().body("Error processing excel: ${e.message}")
+            ResponseEntity.badRequest().body("Error processing excel: ${e.message}".toByteArray())
         }
     }
 

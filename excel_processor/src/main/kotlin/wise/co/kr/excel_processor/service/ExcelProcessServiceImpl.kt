@@ -5,6 +5,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import java.io.ByteArrayOutputStream
 
 
 @Service
@@ -15,7 +16,7 @@ class ExcelProcessServiceImpl(
 
 
     @Transactional
-    override fun processExcel(files: List<MultipartFile>): Int {
+    override fun processExcel(files: List<MultipartFile>): ByteArray {
         val targetWorkbook = SXSSFWorkbook()
         //workbook sheet 생성
         //0, 1, 2, 3 으로 생성후 마지막에 rename 하는게 뭔가 더 좋을거같긴함
@@ -78,15 +79,15 @@ class ExcelProcessServiceImpl(
                 throw IllegalArgumentException("file name is null")
             }
 
+            sourceWorkbook.close()
+
 
         }
 
-        return 0
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        targetWorkbook.write(byteArrayOutputStream)
+        targetWorkbook.dispose()
 
-    }
-
-    @Transactional
-    override fun mergeExcel() {
-        TODO("Not yet implemented")
+        return byteArrayOutputStream.toByteArray()
     }
 }
