@@ -3,7 +3,6 @@ package wise.co.kr.excel_processor.service
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DateUtil
-import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.Workbook
 import org.springframework.stereotype.Service
@@ -16,9 +15,8 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
 
 
     override fun generateExcelByVendor(sourceWorkbook: Workbook, targetWorkbook: Workbook, excelName: String) :Workbook{
-        val vendorName = getVendorName(sourceWorkbook)
 
-        return when (vendorName) {
+        return when (getVendorName(sourceWorkbook)) {
             "WDQ" -> {
                 generateWDQExcel(sourceWorkbook,targetWorkbook, excelName)
             }
@@ -59,8 +57,6 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
     private fun generateWDQExcel(
         sourceWorkbook: Workbook,targetWorkbook: Workbook, excelName: String
     ):Workbook{
-
-
         //값진단결과
         val sourceSheet0 = sourceWorkbook.getSheetAt(0)
         //진단대상테이블
@@ -70,32 +66,43 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
         //업무규칙
         val sourceSheet4 = sourceWorkbook.getSheetAt(4)
 
-
-        val dataHashMap0 = generateHashMap0(sourceSheet0)
-        //targetSheet0
+        val dataHashMap0 = generateHashMap(sourceSheet0)
         dataHashMap0["파일명"] = excelName
-        dataHashMap0["진단도구명"] = sourceSheet0.getRow(0).getCell(1).stringCellValue
         dataHashMap0["업무규칙 수"] = (sourceSheet4.physicalNumberOfRows - 1).toString()
-        dataHashMap0["총 진단건수"] = sourceSheet0.getRow(28).getCell(3).stringCellValue
-        dataHashMap0["총 오류건수"] = sourceSheet0.getRow(28).getCell(4).stringCellValue
-        dataHashMap0["총 오류율"] = sourceSheet0.getRow(28).getCell(5).stringCellValue
         dataHashMap0["작업시간"] = getCurrentKoreanTime()
 
-
-        //매번 행 개수 체크하는게 성능상 부담일 수 도 있으니 문제가 생기면 여기부터 개선
         val targetSheet0 = targetWorkbook.getSheetAt(0)
-        val headerRow = targetSheet0.getRow(0)
-        val newRow = targetSheet0.createRow(targetSheet0.lastRowNum+1)
-        val colNum = headerRow.physicalNumberOfCells
+        val headerRowSheet0 = targetSheet0.getRow(0)
+        val newRowSheet0 = targetSheet0.createRow(targetSheet0.lastRowNum + 1)
+        val colNumSheet0 = headerRowSheet0.physicalNumberOfCells
 
-        for(i in 0 until colNum) {
-            newRow.createCell(i).setCellValue(
-                dataHashMap0.getValue(targetSheet0.getRow(0).getCell(i).toString()).toString()
-            )
+        for (i in 0 until colNumSheet0) {
+            val headerCellValue = headerRowSheet0.getCell(i).stringCellValue
+            newRowSheet0.createCell(i).setCellValue(dataHashMap0[headerCellValue].toString())
         }
 
-        //sheet 1
-        dataHashMap0["품질지표명"] = sourceSheet0.getRow(28).getCell(5).stringCellValue
+        // Sheet 1 처리
+        val targetSheet1 = targetWorkbook.getSheetAt(1)
+        val headerRowSheet1 = targetSheet1.getRow(0)
+        val colNumSheet1 = headerRowSheet1.physicalNumberOfCells
+
+
+        val qualityIndicators = dataHashMap0["품질지표"] as? List<Map<String, String>> ?: listOf()
+        qualityIndicators.forEachIndexed { index, indicator ->
+            val newRowSheet1 = targetSheet1.createRow(targetSheet1.lastRowNum + 1)
+            for (i in 0 until colNumSheet1) {
+                when (val headerCellValue = headerRowSheet1.getCell(i).stringCellValue) {
+                    "파일명" -> newRowSheet1.createCell(i).setCellValue(excelName)
+                    "기관명", "정보시스템명", "DBMS명" -> {
+                        val value = dataHashMap0[headerCellValue] as? String ?: ""
+                        newRowSheet1.createCell(i).setCellValue(value)
+                    }
+                    "품질지표명" -> newRowSheet1.createCell(i).setCellValue(indicator["품질지표명"] ?: "")
+                    "진단건수" -> newRowSheet1.createCell(i).setCellValue(indicator["진단건수"] ?: "")
+                    "오류건수" -> newRowSheet1.createCell(i).setCellValue(indicator["오류건수"] ?: "")
+                    "오류율" -> newRowSheet1.createCell(i).setCellValue(indicator["오류율"] ?: "")
+                }
+        }
 
         //sheet 2
         //상태가 "대상"인 row 의 테이블명, 상태, 범위조건, 의견 가져오기
@@ -126,6 +133,7 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
 
     }
 
+
 //    private fun generateSDQExcel(
 //        sourceWorkbook: Workbook,targetWorkbook: Workbook, excelName:
 //    ):Workbook{
@@ -151,25 +159,62 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
     }
 
 
-    private fun generateHashMap0(sourceSheet: Sheet): HashMap<String, String> {
-        val resultMap = HashMap<String, String>()
+    private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
+        val resultMap = HashMap<String, Any>()
+        val keywordsToRow = listOf("기관명", "정보시스템명", "DBMS명", "DBMS서비스명", "DBMS종류", "DBMS버전")
+        val keywordsToCol = listOf("진단건수", "오류건수", "오류율")
+        var qualityIndicatorMode = false
+        var lastRow = -1
+        val qualityIndicators = mutableListOf<Map<String, String>>()
 
-
-        for (row: Row in sourceSheet) {
-            for (cell: Cell in row) {
+        for (rowIndex in 0..sourceSheet.lastRowNum) {
+            val row = sourceSheet.getRow(rowIndex) ?: continue
+            for (cellIndex in 0..row.lastCellNum) {
+                val cell = row.getCell(cellIndex) ?: continue
                 val cellValue = getCellValueAsString(cell)
 
-                // 특정 단어와 일치하는지 확인
-                if (isKeyword(cellValue)) {
-                    val nextCell = row.getCell(cell.columnIndex + 1)
-                    if (nextCell != null) {
-                        val nextCellValue = getCellValueAsString(nextCell)
-                        resultMap[cellValue] = nextCellValue
+                when {
+                    keywordsToRow.contains(cellValue) -> {
+                        val nextCell = row.getCell(cellIndex + 1)
+                        if (nextCell != null) {
+                            resultMap[cellValue] = getCellValueAsString(nextCell)
+                        }
+                    }
+                    keywordsToCol.contains(cellValue) -> {
+                        for (i in sourceSheet.lastRowNum downTo rowIndex) {
+                            val lastCell = sourceSheet.getRow(i)?.getCell(cellIndex)
+                            if (lastCell != null && getCellValueAsString(lastCell).isNotBlank()) {
+                                resultMap[cellValue] = getCellValueAsString(lastCell)
+                                break
+                            }
+                        }
+                    }
+                    cellValue == "품질지표명" -> {
+                        qualityIndicatorMode = true
+                        lastRow = rowIndex
+                    }
+                    cellValue.contains("출력일") -> {
+                        resultMap["출력일"] = cellValue.substring(cellValue.indexOf(":") + 1).trim()
+                    }
+                    qualityIndicatorMode && rowIndex > lastRow -> {
+                        if (cellValue.isBlank() || cellValue == "합계") {
+                            qualityIndicatorMode = false
+                        } else {
+                            val diagnosisCount = getCellValueAsString(row.getCell(cellIndex + 2))
+                            val errorCount = getCellValueAsString(row.getCell(cellIndex + 3))
+                            val errorRate = getCellValueAsString(row.getCell(cellIndex + 4))
+                            qualityIndicators.add(mapOf(
+                                "품질지표명" to cellValue,
+                                "진단건수" to diagnosisCount,
+                                "오류건수" to errorCount,
+                                "오류율" to errorRate
+                            ))
+                        }
                     }
                 }
             }
         }
-
+        resultMap["품질지표"] = qualityIndicators
         return resultMap
     }
 
@@ -188,16 +233,6 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
             else -> ""
         }
     }
-
-    private fun isKeyword(value: String): Boolean {
-        val keywords = listOf(
-            "파일명", "기관명", "정보시스템명", "DBMS명", "DBMS서비스명",
-            "DBMS종류", "DBMS버전", "업무규칙 수", "총 진단건수", "총 오류건수",
-            "총 오류율", "출력일"
-        )
-        return keywords.contains(value)
-    }
-
 
 
 
