@@ -1,5 +1,6 @@
 package wise.co.kr.excel_processor.controller
 
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -30,16 +31,6 @@ class ExcelController(
             ResponseEntity.badRequest().body("Error processing excel: ${e.message}".toByteArray())
         }
     }
-
-    /*
-    @GetMapping("/download")
-    fun downloadExcel(): ResponseEntity<Resource> {
-        val resource = excelProcessService.generateExcel()
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=processed_data.xlsx")
-            .body(resource)
-    }
-    */
 
 
 }
