@@ -73,6 +73,7 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
 
         val dataHashMap0 = generateHashMap(sourceSheet0)
         dataHashMap0["파일명"] = excelName
+        dataHashMap0["진단도구명"] = sourceSheet0.getRow(0).getCell(1)
         dataHashMap0["업무규칙 수"] = (sourceSheet4.physicalNumberOfRows - 1).toString()
         dataHashMap0["작업시간"] = getCurrentKoreanTime()
 
@@ -91,27 +92,35 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
         // Sheet 1 처리
         val targetSheet1 = targetWorkbook.getSheetAt(1) ?: throw IllegalArgumentException("Target Sheet 1 not found")
         val headerRowSheet1 = targetSheet1.getRow(0) ?: targetSheet1.createRow(0)
+        val newRowSheet1 = targetSheet1.createRow(targetSheet0.lastRowNum + 1)
         val colNumSheet1 = headerRowSheet1.physicalNumberOfCells
 
-
-        val qualityIndicators = dataHashMap0["품질지표"] as? List<Map<String, String>> ?: listOf()
-        qualityIndicators.forEach { indicator ->
-            val newRowSheet1 = targetSheet1.createRow(targetSheet1.lastRowNum + 1)
-            for (i in 0 until colNumSheet1) {
-                val headerCell = headerRowSheet1.getCell(i) ?: continue
-                when (val headerCellValue = headerCell.stringCellValue) {
-                    "파일명" -> newRowSheet1.createCell(i).setCellValue(excelName)
-                    "기관명", "정보시스템명", "DBMS명" -> {
-                        val value = dataHashMap0[headerCellValue]?.toString() ?: ""
-                        newRowSheet1.createCell(i).setCellValue(value)
-                    }
-                    "품질지표명" -> newRowSheet1.createCell(i).setCellValue(indicator["품질지표명"] ?: "")
-                    "진단건수" -> newRowSheet1.createCell(i).setCellValue(indicator["진단건수"] ?: "")
-                    "오류건수" -> newRowSheet1.createCell(i).setCellValue(indicator["오류건수"] ?: "")
-                    "오류율" -> newRowSheet1.createCell(i).setCellValue(indicator["오류율"] ?: "")
-                }
-            }
+        for (i in 0 until colNumSheet1) {
+            val headerCell = headerRowSheet1.getCell(i) ?: continue
+            val headerCellValue = headerCell.stringCellValue
+            val value = dataHashMap0[headerCellValue]?.toString() ?: ""
+            newRowSheet1.createCell(i).setCellValue(value)
         }
+
+
+//        val qualityIndicators = dataHashMap0["품질지표"] as? List<Map<String, String>> ?: listOf()
+//        qualityIndicators.forEach { indicator ->
+//            val newRowSheet1 = targetSheet1.createRow(targetSheet1.lastRowNum + 1)
+//            for (i in 0 until colNumSheet1) {
+//                val headerCell = headerRowSheet1.getCell(i) ?: continue
+//                when (val headerCellValue = headerCell.stringCellValue) {
+//                    "파일명" -> newRowSheet1.createCell(i).setCellValue(excelName)
+//                    "기관명", "정보시스템명", "DBMS명" -> {
+//                        val value = dataHashMap0[headerCellValue]?.toString() ?: ""
+//                        newRowSheet1.createCell(i).setCellValue(value)
+//                    }
+//                    "품질지표명" -> newRowSheet1.createCell(i).setCellValue(indicator["품질지표명"] ?: "")
+//                    "진단건수" -> newRowSheet1.createCell(i).setCellValue(indicator["진단건수"] ?: "")
+//                    "오류건수" -> newRowSheet1.createCell(i).setCellValue(indicator["오류건수"] ?: "")
+//                    "오류율" -> newRowSheet1.createCell(i).setCellValue(indicator["오류율"] ?: "")
+//                }
+//            }
+//        }
 
         //sheet 2
         //상태가 "대상"인 row 의 테이블명, 상태, 범위조건, 의견 가져오기
@@ -123,7 +132,7 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
         for (i in 1 until sourceSheet2.physicalNumberOfRows) {
             val sourceRow = sourceSheet2.getRow(i) ?: continue
             val statusCell = sourceRow.getCell(3)
-            if (statusCell?.stringCellValue == "대상") {
+            if (statusCell.stringCellValue == "대상") {
                 val targetRow = targetSheet2.createRow(targetRowNum2++)
                 for (j in 0 until sourceRow.physicalNumberOfCells) {
                     val sourceCell = sourceRow.getCell(j)
@@ -174,7 +183,6 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
     val keywordsToCol = listOf("진단건수", "오류건수", "오류율")
     var qualityIndicatorMode = false
     var lastRow = -1
-    val qualityIndicators = mutableListOf<Map<String, String>>()
 
     for (rowIndex in 0..sourceSheet.lastRowNum) {
         val row = sourceSheet.getRow(rowIndex) ?: continue
@@ -217,7 +225,6 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
 
                     }
                 }
-
                 keywordsToCol.contains(cellValue) -> {
                     for (i in sourceSheet.lastRowNum downTo rowIndex) {
                         val lastCell = sourceSheet.getRow(i)?.getCell(cellIndex)
@@ -237,17 +244,26 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
                         }
                     }
                 }
-
-                cellValue == "품질지표명" -> {
-                    qualityIndicatorMode = true
-                    lastRow = rowIndex
-                }
-
                 cellValue.contains("출력일") -> {
                     resultMap["출력일"] = cellValue.substring(cellValue.indexOf(":") + 1).trim()
                 }
 
+                cellValue == "품질지표명" -> {
 
+                    for (k in rowIndex+1 until )
+                        sourceSheet.getRow(rowIndex+1)
+
+                        resultMap["품질지표명"] = cellValue
+                        resultMap["진단건수"] = row.getCell(cellIndex + 2)?.let { getCellValueAsString(it) } ?: ""
+                        resultMap["오류건수"] = row.getCell(cellIndex + 3)?.let { getCellValueAsString(it) } ?: ""
+                        resultMap["오류율"] = row.getCell(cellIndex + 4)?.let { getCellValueAsString(it) } ?: ""
+
+                }
+
+
+                // cell value 가 품질 지표명이면 indicator가 true로 설정되고 아래로 내려가면서 빈칸 혹은 합계 를 만나기 전까지 돌아감
+                // 해야할 것은 돌면서 list 에 품질 지표명에 해당하는 키워드를 저장하고 해당 키워드들을 key, 진단건수 오류건수, 오류율을 value 로 저장
+                // 그리고 엑셀에 쓸 때는, 품질 지표명을 만나면  key 개수만큼 for문 돌면서 엑셀에 쓰기
                 qualityIndicatorMode && rowIndex > lastRow -> {
                     if (cellValue.isBlank() || cellValue == "합계") {
                         qualityIndicatorMode = false
@@ -255,20 +271,17 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
                         val diagnosisCount = row.getCell(cellIndex + 2)?.let { getCellValueAsString(it) } ?: ""
                         val errorCount = row.getCell(cellIndex + 3)?.let { getCellValueAsString(it) } ?: ""
                         val errorRate = row.getCell(cellIndex + 4)?.let { getCellValueAsString(it) } ?: ""
-                        qualityIndicators.add(
-                            mapOf(
-                                "품질지표명" to cellValue,
-                                "진단건수" to diagnosisCount,
-                                "오류건수" to errorCount,
-                                "오류율" to errorRate
-                            )
-                        )
+
+                        resultMap["품질지표명"] = cellValue
+                        resultMap["진단건수"] = diagnosisCount
+                        resultMap["오류건수"] = errorCount
+                        resultMap["오류율"] = errorRate
+
                     }
                 }
             }
         }
     }
-    resultMap["품질지표"] = qualityIndicators
     return resultMap
 }
 
