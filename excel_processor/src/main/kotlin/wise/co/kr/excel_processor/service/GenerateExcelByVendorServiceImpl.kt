@@ -189,6 +189,7 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
         for (cellIndex in 0..row.lastCellNum) {
             val cell = row.getCell(cellIndex) ?: continue
             val cellValue = getCellValueAsString(cell)
+            val qualityIndicatorHashMapList : MutableList<HashMap<String, List<String>>> = mutableListOf()
 
             when {
 
@@ -250,13 +251,27 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
 
                 cellValue == "품질지표명" -> {
 
-                    for (k in rowIndex+1 until )
-                        sourceSheet.getRow(rowIndex+1)
+                    var newRowIndex = rowIndex+1
+                    val newRow = sourceSheet.getRow(newRowIndex)
+                    val newCellValue = getCellValueAsString(newRow.getCell(cellIndex))
+                    while (newCellValue.isNotBlank() && newCellValue !="합계"){
 
-                        resultMap["품질지표명"] = cellValue
-                        resultMap["진단건수"] = row.getCell(cellIndex + 2)?.let { getCellValueAsString(it) } ?: ""
-                        resultMap["오류건수"] = row.getCell(cellIndex + 3)?.let { getCellValueAsString(it) } ?: ""
-                        resultMap["오류율"] = row.getCell(cellIndex + 4)?.let { getCellValueAsString(it) } ?: ""
+
+                        val qualityIndicatorHashMap : HashMap<String, List<String>> = hashMapOf()
+
+                        val diagnosisCount = getCellValueAsString(newRow.getCell(cellIndex + 2))
+                        val errorCount = getCellValueAsString(newRow.getCell(cellIndex + 3))
+                        val errorRate = getCellValueAsString(newRow.getCell(cellIndex + 4))
+
+                        qualityIndicatorHashMap[newCellValue] = listOf(diagnosisCount, errorCount, errorRate)
+                        qualityIndicatorHashMapList.add(qualityIndicatorHashMap)
+
+                        newRowIndex++
+
+                    }
+
+                    resultMap["품질지표명"] = qualityIndicatorHashMapList
+
 
                 }
 
@@ -264,21 +279,17 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
                 // cell value 가 품질 지표명이면 indicator가 true로 설정되고 아래로 내려가면서 빈칸 혹은 합계 를 만나기 전까지 돌아감
                 // 해야할 것은 돌면서 list 에 품질 지표명에 해당하는 키워드를 저장하고 해당 키워드들을 key, 진단건수 오류건수, 오류율을 value 로 저장
                 // 그리고 엑셀에 쓸 때는, 품질 지표명을 만나면  key 개수만큼 for문 돌면서 엑셀에 쓰기
-                qualityIndicatorMode && rowIndex > lastRow -> {
-                    if (cellValue.isBlank() || cellValue == "합계") {
-                        qualityIndicatorMode = false
-                    } else {
-                        val diagnosisCount = row.getCell(cellIndex + 2)?.let { getCellValueAsString(it) } ?: ""
-                        val errorCount = row.getCell(cellIndex + 3)?.let { getCellValueAsString(it) } ?: ""
-                        val errorRate = row.getCell(cellIndex + 4)?.let { getCellValueAsString(it) } ?: ""
-
-                        resultMap["품질지표명"] = cellValue
-                        resultMap["진단건수"] = diagnosisCount
-                        resultMap["오류건수"] = errorCount
-                        resultMap["오류율"] = errorRate
-
-                    }
-                }
+//                qualityIndicatorMode && rowIndex > lastRow -> {
+//                    if (cellValue.isBlank() || cellValue == "합계") {
+//                        qualityIndicatorMode = false
+//                    } else {
+//                        val diagnosisCount = row.getCell(cellIndex + 2)?.let { getCellValueAsString(it) } ?: ""
+//                        val errorCount = row.getCell(cellIndex + 3)?.let { getCellValueAsString(it) } ?: ""
+//                        val errorRate = row.getCell(cellIndex + 4)?.let { getCellValueAsString(it) } ?: ""
+//
+//
+//                    }
+//                }
             }
         }
     }
