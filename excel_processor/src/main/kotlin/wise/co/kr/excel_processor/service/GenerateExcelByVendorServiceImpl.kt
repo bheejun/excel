@@ -220,6 +220,10 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
 
             when {
 
+                cellValue.isBlank() -> {
+                    continue
+                }
+
 
                 keywordsToRow.contains(cellValue) -> {
                     val nextCell = row.getCell(cellIndex + 1)
@@ -298,6 +302,7 @@ private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
                     }
 
                     resultMap["품질지표명"] = qualityIndicatorHashMapList
+                    return resultMap
                 }
             }
         }
