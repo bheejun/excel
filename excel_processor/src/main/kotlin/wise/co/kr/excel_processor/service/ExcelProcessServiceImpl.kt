@@ -26,51 +26,6 @@ class ExcelProcessServiceImpl(
         targetWorkbook.createSheet("진단대상테이블_목록")
         targetWorkbook.createSheet("진단대상컬럼_목록")
 
-        //workbook 초기세팅
-        //workbook 시트별 헤더 세팅
-//        val sheet0Headers = listOf(
-//            "파일명", "기관명", "정보시스템명", "DBMS명", "DBMS서비스명",
-//            "DBMS종류", "DBMS버전", "업무규칙 수", "총 진단건수", "총 오류건수",
-//            "총 오류율", "출력일", "진단도구명", "작업시간"
-//        )
-//
-//        val sheet1Headers = listOf(
-//            "파일명", "기관명", "정보시스템명", "DBMS명", "품질지표명",
-//            "진단건수", "오류건수", "오류율"
-//        )
-//
-//        val sheet2Headers = listOf(
-//            "DBMS명", "스키마명", "테이블명", "상태", "수집일자",
-//            "범위조건", "의견"
-//        )
-//
-//        val sheet3Headers = listOf(
-//            "DBMS명", "스키마명", "테이블명", "컬럼명", "데이터타입",
-//            "검증룰명", "품질지표명(진단기준명)", "검증룰(진단기준)", "오류제외데이터", "의견"
-//        )
-//
-//        //시트별 row 생성후 헤더 세팅
-////        sheet0Headers.forEachIndexed { index, header ->
-////            targetWorkbook.getSheetAt(0).createRow(0).createCell(index).setCellValue(header)
-////
-////        }
-//        for (i in 0 until sheet0Headers.size) {
-//            targetWorkbook.getSheetAt(0).createRow(0).createCell(i).setCellValue(sheet0Headers[i])
-//        }
-//
-//
-//        sheet1Headers.forEachIndexed { index, header ->
-//            targetWorkbook.getSheetAt(1).createRow(0).createCell(index).setCellValue(header)
-//
-//        }
-//        sheet2Headers.forEachIndexed { index, header ->
-//            targetWorkbook.getSheetAt(2).createRow(0).createCell(index).setCellValue(header)
-//
-//        }
-//        sheet3Headers.forEachIndexed { index, header ->
-//            targetWorkbook.getSheetAt(3).createRow(0).createCell(index).setCellValue(header)
-//
-//        }
         val headers = listOf(
             listOf("파일명", "기관명", "시스템명", "DB명", "DB서비스명", "DB종류", "버전", "업무규칙 수", "총 진단건수", "총 오류건수", "총 오류율", "출력일", "진단도구명", "작업시간"),
             listOf("파일명", "기관명", "정보시스템명", "DBMS명", "품질지표명", "진단건수", "오류건수", "오류율"),
