@@ -138,11 +138,40 @@ class GenerateExcelByVendorServiceImpl : GenerateExcelByVendorService {
                 }
             }
         }
+
         //sheet 3
         //검증룰 명이 존재하는 row 의 테이블명, 컬럼명, 데이터타입, 검증룰명,품질지표명, 검증룰, 오류제외데이터, 의견 가져오기
         //source sheet 에서 row 를 기준으로 반복문을 돌면서 일치하는 단어가 있는 헤더 기준 셀을 복사해서 value 로 집어넣기
+        val targetSheet3 = targetWorkbook.getSheetAt(3) ?: throw IllegalArgumentException("Target Sheet 2 not found")
 
+        for (i in 1 until sourceSheet2.physicalNumberOfRows){
+            val sourceHeaderRow = sourceSheet2.getRow(0) ?:continue
+            val sourceRow = sourceSheet2.getRow(i) ?: continue
+            val elementHashMap : HashMap<String, String> = hashMapOf()
 
+            if(sourceRow.getCell(6).toString().isNotBlank()){
+
+                for(j in 0 until sourceHeaderRow.physicalNumberOfCells){
+                    elementHashMap[sourceSheet2.getRow(0).getCell(j).toString()] = sourceRow.getCell(j).toString()
+                }
+
+                val targetRow = targetSheet3.createRow(targetSheet3.physicalNumberOfRows)
+
+                for(k in 0 until targetSheet3.getRow(0).physicalNumberOfCells){
+                    targetRow
+                        .createCell(k).setCellValue(
+                            elementHashMap.getValue(
+                                targetSheet3.getRow(0).getCell(k).toString())
+                        )
+
+                }
+
+                elementHashMap.clear()
+
+            }else{
+                continue
+            }
+        }
         return targetWorkbook
 
     }
