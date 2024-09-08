@@ -11,5 +11,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Service
-class ProcessDqminerExcel {
+class ProcessDqminerExcel : ProcessExcelService {
+
+
 }

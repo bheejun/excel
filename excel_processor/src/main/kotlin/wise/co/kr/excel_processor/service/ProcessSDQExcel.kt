@@ -6,9 +6,6 @@ import org.apache.poi.ss.usermodel.DateUtil
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.Workbook
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 
 @Service
@@ -97,16 +94,16 @@ class ProcessSDQExcel : ProcessExcelService {
                         val value = dataHashMap0["DB서비스명"].toString()
                         targetRow.createCell(j).setCellValue(value)
                     } else if (targetHeaderRow.getCell(j).toString() == "테이블명") {
-                        val sourceCell = sourceRow.getCell(j-2)
+                        val sourceCell = sourceRow.getCell(j - 2)
                         val value = getCellValueAsString(sourceCell)
                         targetRow.createCell(j).setCellValue(value)
                     } else {
-                        val sourceCell = sourceRow.getCell(j-2)
+                        val sourceCell = sourceRow.getCell(j - 2)
                         val value = getCellValueAsString(sourceCell)
                         targetRow.createCell(j).setCellValue(value)
                     }
                 }
-            }else {
+            } else {
                 continue
             }
         }
@@ -123,26 +120,28 @@ class ProcessSDQExcel : ProcessExcelService {
             val elementHashMap: HashMap<String, String> = hashMapOf()
             //SDQ 도메인 순서: 테이블, 컬럼, 데이터타입, 진단기준명, 도메인, 진단기준, 오류제외데이터
             if (sourceRow.getCell(5).toString().isNotBlank()) {
-                for (j in 0 until targetSourceHeaderRow.physicalNumberOfCells) {
+                for (j in 0 until sourceHeaderRow.physicalNumberOfCells) {
+                    val sourceHeaderCell = sourceHeaderRow.getCell(j).toString()
+                    val sourceCell = sourceRow.getCell(j).toString()
 
                     elementHashMap["DBMS명"] = dataHashMap0["DBMS명"].toString()
                     elementHashMap["스키마명"] = dataHashMap0["DB서비스명"].toString()
-                    if(sourceHeaderRow.getCell(j).toString() == "테이블"){
-                        elementHashMap["테이블명"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRow.getCell(j).toString() == "컬럼"){
-                        elementHashMap["컬럼명"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRow.getCell(j).toString() == "진단기준명"){
-                        elementHashMap["검증룰명"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRow.getCell(j).toString() == "도메인"){
-                        elementHashMap["품질지표명"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRow.getCell(j).toString() == "진단기준"){
-                        elementHashMap["검증룰"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRow.getCell(j).toString() == "오류제외데이터"){
-                        elementHashMap["오류제외데이터"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRow.getCell(j).toString().contains("의견")){
-                        elementHashMap["의견"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRow.getCell(j).toString() == "데이터타입"){
-                        elementHashMap["데이터타입"] = sourceRow.getCell(j).toString()
+                    if (sourceHeaderCell == "테이블") {
+                        elementHashMap["테이블명"] = sourceCell
+                    } else if (sourceHeaderCell == "컬럼") {
+                        elementHashMap["컬럼명"] = sourceCell
+                    } else if (sourceHeaderCell == "데이터타입") {
+                        elementHashMap["데이터타입"] = sourceCell
+                    } else if (sourceHeaderCell == "진단기준명") {
+                        elementHashMap["검증룰명"] = sourceCell
+                    } else if (sourceHeaderCell == "도메인") {
+                        elementHashMap["품질지표명"] = sourceCell
+                    } else if (sourceHeaderCell == "진단기준") {
+                        elementHashMap["검증룰"] = sourceCell
+                    } else if (sourceHeaderCell == "오류제외데이터") {
+                        elementHashMap["오류제외데이터"] = sourceCell
+                    } else if (sourceHeaderCell.contains("의견")) {
+                        elementHashMap["의견"] = sourceCell
                     }
 
                 }

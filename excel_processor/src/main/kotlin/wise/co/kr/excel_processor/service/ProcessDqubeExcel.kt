@@ -1,23 +1,22 @@
 package wise.co.kr.excel_processor.service
 
-import org.springframework.stereotype.Service
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DateUtil
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.Workbook
+import org.springframework.stereotype.Service
 
 @Service
-class ProcessWDQExcel:ProcessExcelService {
-
-    //TODO:hashmap 만들고 생성된 hashmap 으로 엑셀 생성하는 로직 만들기
-    fun generateWDQExcel(
+class ProcessDqubeExcel : ProcessExcelService {
+    fun generateDqubeExcel(
         sourceWorkbook: Workbook, targetWorkbook: Workbook, excelName: String
     ): Workbook {
         // 값진단결과
         val sourceSheet0 = sourceWorkbook.getSheet("(진단결과)값진단결과") ?: throw IllegalArgumentException("Sheet 0 not found")
         // 진단대상테이블
-        val sourceSheet1 = sourceWorkbook.getSheet("(테이블선정)진단대상테이블") ?: throw IllegalArgumentException("Sheet 1 not found")
+        val sourceSheet1 =
+            sourceWorkbook.getSheet("(테이블선정)진단대상테이블") ?: throw IllegalArgumentException("Sheet 1 not found")
         // 도메인
         val sourceSheet2 = sourceWorkbook.getSheet("(룰설정)도메인") ?: throw IllegalArgumentException("Sheet 2 not found")
         // 업무규칙
@@ -78,17 +77,24 @@ class ProcessWDQExcel:ProcessExcelService {
         //별도의 리스트는 필요하지 않을 듯
 
         val targetSheet2 = targetWorkbook.getSheetAt(2) ?: throw IllegalArgumentException("Target Sheet 2 not found")
-
-        for (i in 0 until sourceSheet2.physicalNumberOfRows) {
+        val targetHeaderRow = targetSheet2.getRow(0) ?: throw IllegalArgumentException("TargetHeaderRow is not created")
+        for (i in 0 until sourceSheet1.physicalNumberOfRows) {
+            val sourceHeaderRow = sourceSheet1.getRow(0)
             val sourceRow = sourceSheet1.getRow(i) ?: continue
             val statusCell = sourceRow.getCell(3)
+
             if (statusCell.stringCellValue == "대상") {
                 val targetRow = targetSheet2.createRow(targetSheet2.physicalNumberOfRows)
-                for (j in 0 until targetSheet2.getRow(0).physicalNumberOfCells) {
-                    val sourceCell = sourceRow.getCell(j)
-                    val value = getCellValueAsString(sourceCell)
-                    targetRow.createCell(j).setCellValue(value)
+                for (j in 0 until targetHeaderRow.physicalNumberOfCells) {
+                    if (targetHeaderRow.getCell(j).toString() == "DBMS명") {
+                        val value = dataHashMap0["DBMS명"].toString()
+                        targetRow.createCell(j).setCellValue(value)
+                    } else {
+                        targetRow.createCell(j).setCellValue(getCellValueAsString(sourceRow.getCell(j)))
+                    }
                 }
+            } else {
+                continue
             }
         }
 
@@ -98,31 +104,55 @@ class ProcessWDQExcel:ProcessExcelService {
         val targetSheet3 = targetWorkbook.getSheetAt(3) ?: throw IllegalArgumentException("Target Sheet 2 not found")
 
         for (i in 1 until sourceSheet2.physicalNumberOfRows) {
-            val sourceHeaderRowList : MutableList<String> = mutableListOf()
-            sourceSheet2.getRow(0).forEach { cell -> sourceHeaderRowList.add(cell.toString()) }
-            val targetHeaderRow = targetSheet3.getRow(0) ?: throw IllegalArgumentException("TargetHeaderRow is not created")
+            val sourceHeaderRow = sourceSheet2.getRow(0) ?: throw IllegalArgumentException("HeaderRow is not created")
+            val targetSourceHeaderRow = targetWorkbook.getSheetAt(3).getRow(0)
             val sourceRow = sourceSheet2.getRow(i) ?: continue
             val elementHashMap: HashMap<String, String> = hashMapOf()
 
-            if (sourceRow.getCell(6).toString().isNotBlank()) {
+            if (sourceRow.getCell(5).toString().isNotBlank()) {
+                for (j in 0 until sourceHeaderRow.physicalNumberOfCells) {
 
-                for (j in 0 until sourceHeaderRowList.size) {
-                    if(targetHeaderRow.getCell(j).toString().contains("의견")){
-                        elementHashMap["의견"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRowList.contains(targetHeaderRow.getCell(j).toString())){
-                        //sourceSheet2의 헤더로우에 해당 key를 가진 cell 인덱스를 찾아서 넣는다
-                        elementHashMap[targetHeaderRow.getCell(j).toString()] = sourceRow.getCell(
-                            sourceHeaderRowList.indexOf(targetHeaderRow.getCell(j).toString())
-                        ).toString()
+                    val sourceHeaderCell = sourceHeaderRow.getCell(j).toString()
+                    val sourceCell = sourceRow.getCell(j).toString()
+
+                    if (sourceHeaderCell == "DBMS") {
+                        elementHashMap["DBMS명"] = sourceCell
+                    } else if (sourceHeaderCell == "스키마") {
+                        elementHashMap["스키마명"] = sourceCell
+                    } else if (sourceHeaderCell == "테이블") {
+                        elementHashMap["테이블명"] = sourceCell
+                    } else if (sourceHeaderCell == "컬럼") {
+                        elementHashMap["컬럼명"] = sourceCell
+                    } else if (sourceHeaderCell == "데이터타입") {
+                        elementHashMap["데이터타입"] = sourceCell
+                    } else if (sourceHeaderCell == "검증룰명") {
+                        elementHashMap["검증룰명"] = sourceCell
+                    } else if (sourceHeaderCell == "도메인") {
+                        elementHashMap["품질지표명"] = sourceCell
+                    } else if (sourceHeaderCell == "검증형식") {
+                        if(sourceRow.getCell(j-1).toString() == "코드"){
+                            elementHashMap["검증룰"] = ""
+                        }else{
+                            elementHashMap["검증룰"] = sourceCell
+                        }
+                    } else if (sourceHeaderCell == "오류제외데이터") {
+                        elementHashMap["오류제외데이터"] = sourceCell
+                    } else if (sourceHeaderCell.contains("의견")) {
+                        elementHashMap["의견"] = sourceCell
                     }
+
                 }
 
                 val targetRow = targetSheet3.createRow(targetSheet3.physicalNumberOfRows)
 
-                for (k in 0 until targetHeaderRow.physicalNumberOfCells) {
-                    targetRow.createCell(k).setCellValue(
-                            elementHashMap[targetHeaderRow.getCell(k).toString()]
+                for (k in 0 until targetSourceHeaderRow.physicalNumberOfCells) {
+                    targetRow
+                        .createCell(k).setCellValue(
+                            elementHashMap.getValue(
+                                targetSheet3.getRow(0).getCell(k).toString()
+                            )
                         )
+
                 }
 
                 elementHashMap.clear()
@@ -136,11 +166,9 @@ class ProcessWDQExcel:ProcessExcelService {
     }
 
 
-
-
     private fun generateHashMap(sourceSheet: Sheet): HashMap<String, Any> {
         val resultMap = HashMap<String, Any>()
-        val keywordsToRow = listOf("기관명", "정보시스템명", "DBMS명", "DBMS서비스(스키마)명", "DBMS종류", "DBMS버전")
+        val keywordsToRow = listOf("기관명", "시스템", "DB명", "DB서비스명", "DB종류", "버전")
         val keywordsToCol = listOf("진단건수", "오류건수", "오류율")
 
         for (rowIndex in 0..sourceSheet.lastRowNum) {
@@ -155,27 +183,27 @@ class ProcessWDQExcel:ProcessExcelService {
                         val nextCell = row.getCell(cellIndex + 1)
                         if (nextCell != null) {
                             when (cellValue) {
-                                "정보시스템명" -> {
+                                "시스템" -> {
                                     resultMap["정보시스템명"] = getCellValueAsString(nextCell)
                                     resultMap["시스템명"] = getCellValueAsString(nextCell)
                                 }
 
-                                "DBMS명" -> {
+                                "DB명" -> {
                                     resultMap["DBMS명"] = getCellValueAsString(nextCell)
                                     resultMap["DB명"] = getCellValueAsString(nextCell)
                                 }
 
-                                "DBMS서비스(스키마)명" -> {
+                                "DB서비스명" -> {
                                     resultMap["DB서비스명"] = getCellValueAsString(nextCell)
                                     resultMap["DB명"] = getCellValueAsString(nextCell)
                                 }
 
-                                "DBMS종류" -> {
+                                "DB종류" -> {
                                     resultMap["DBMS종류"] = getCellValueAsString(nextCell)
                                     resultMap["DB종류"] = getCellValueAsString(nextCell)
                                 }
 
-                                "DBMS버전" -> {
+                                "버전" -> {
                                     resultMap["버전"] = getCellValueAsString(nextCell)
                                 }
 
@@ -214,12 +242,12 @@ class ProcessWDQExcel:ProcessExcelService {
                         resultMap["출력일"] = cellValue.substring(cellValue.indexOf(":") + 1).trim()
                     }
 
-                    cellValue == "품질지표명" -> {
+                    cellValue == "진단항목" -> {
                         var newRowIndex = rowIndex + 1
                         var newRow = sourceSheet.getRow(newRowIndex)
                         var newCellValue = getCellValueAsString(newRow.getCell(cellIndex))
 
-                        while (newCellValue.isNotBlank() && newCellValue != "합계") {
+                        while (newCellValue.isNotBlank() && newCellValue.contains("기관")) {
                             val qualityIndicatorHashMap: HashMap<String, List<String>> = hashMapOf()
 
                             val diagnosisCount = getCellValueAsString(newRow.getCell(cellIndex + 2))
@@ -262,6 +290,4 @@ class ProcessWDQExcel:ProcessExcelService {
             else -> ""
         }
     }
-
-
 }
