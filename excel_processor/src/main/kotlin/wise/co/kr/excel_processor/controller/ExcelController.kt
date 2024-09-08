@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import wise.co.kr.excel_processor.service.ExcelProcessService
+import java.io.File
+import java.net.URLDecoder
+import java.nio.file.Files
 
 @RestController
 @RequestMapping("/excel")
@@ -19,17 +22,29 @@ class ExcelController(
     private val excelProcessService: ExcelProcessService
 ) {
 
-    @PostMapping("/upload")
-    fun uploadExcel(@RequestParam("files") files: List<MultipartFile>): ResponseEntity<ByteArray> {
+    @GetMapping("/upload")
+    fun uploadExcel(@RequestParam("path") path: String): ResponseEntity<ByteArray> {
         return try {
+            val decodedURL = URLDecoder.decode(path, "UTF-8")
+            val files = scanFile(decodedURL)
             val excelBytes = excelProcessService.processExcel(files)
             ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=combined_excel.xlsx")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=resultExcel.xlsx")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(excelBytes)
         } catch (e: Exception) {
             ResponseEntity.badRequest().body("Error processing excel: ${e.message}".toByteArray())
         }
+    }
+
+    private fun scanFile (path: String) : List<File> {
+        val directory = File(path)
+        if (!directory.isDirectory) {
+            throw IllegalArgumentException("Provided path is not a directory")
+        }
+
+        return directory.listFiles()?.toList() ?: emptyList()
+
     }
 
 
