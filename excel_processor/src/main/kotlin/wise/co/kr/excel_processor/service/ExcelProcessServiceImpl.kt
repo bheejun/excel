@@ -6,8 +6,10 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import wise.co.kr.excel_processor.dto.ResponseDto
 import java.io.ByteArrayOutputStream
 import java.io.File
+import kotlin.math.roundToInt
 
 
 @Service
@@ -18,7 +20,8 @@ class ExcelProcessServiceImpl(
 
 
     @Transactional
-    override fun processExcel(files: List<File>): ByteArray {
+    override fun processExcel(files: List<File>): ResponseDto {
+        println(files.size.toString())
         val targetWorkbook = XSSFWorkbook()
         //workbook sheet 생성
         //0, 1, 2, 3 으로 생성후 마지막에 rename 하는게 뭔가 더 좋을거같긴함
@@ -59,21 +62,22 @@ class ExcelProcessServiceImpl(
         }
 
         val notExcelFileList: MutableList<String> = mutableListOf()
+        var count = 0
 
-        //초기 세팅 완료 된 target workbook 에 파일별로 데이터 적재
         files.forEach { file ->
-
-            val sourceWorkbook = WorkbookFactory.create(file.inputStream())
             val excelName = file.name ?: throw IllegalArgumentException("The file name is Null.")
-            val extension = excelName.substringAfterLast(".")
-            if (extension == "xlsx" || extension == "xls") {
-                //source workbook 에서 데이터를 수집한 후, target workbook 에 재정렬 한 target workbook 이 출력으로 나옴
+            try {
+                val sourceWorkbook = WorkbookFactory.create(file.inputStream())
                 generateExcelByVendorService.generateExcelByVendor(sourceWorkbook, targetWorkbook, excelName)
-            } else {
+                count++
+                val progress = ((count.toDouble() / files.size) * 100).roundToInt()
+
+                println("$progress% ||| $excelName")
+
+                sourceWorkbook.close()
+            } catch (e: Exception) {
                 notExcelFileList.add(excelName)
             }
-            sourceWorkbook.close()
-
         }
 
 
@@ -81,6 +85,6 @@ class ExcelProcessServiceImpl(
         targetWorkbook.write(byteArrayOutputStream)
         targetWorkbook.close()
 
-        return byteArrayOutputStream.toByteArray()
+        return ResponseDto(byteArrayOutputStream.toByteArray(),notExcelFileList)
     }
 }
