@@ -23,6 +23,7 @@ class ProcessDqubeExcel : ProcessExcelService {
         val sourceSheet4 = sourceWorkbook.getSheet("(룰설정)업무규칙") ?: throw IllegalArgumentException("Sheet 4 not found")
 
 
+
         val dataHashMap0 = generateHashMap(sourceSheet0)
         dataHashMap0["파일명"] = excelName
         dataHashMap0["진단도구명"] = sourceSheet0.getRow(0).getCell(1)
@@ -102,6 +103,7 @@ class ProcessDqubeExcel : ProcessExcelService {
         //검증룰 명이 존재하는 row 의 테이블명, 컬럼명, 데이터타입, 검증룰명,품질지표명, 검증룰, 오류제외데이터, 의견 가져오기
         //source sheet 에서 row 를 기준으로 반복문을 돌면서 일치하는 단어가 있는 헤더 기준 셀을 복사해서 value 로 집어넣기
         val targetSheet3 = targetWorkbook.getSheetAt(3) ?: throw IllegalArgumentException("Target Sheet 2 not found")
+        println(excelName)
 
         for (i in 1 until sourceSheet2.physicalNumberOfRows) {
             val sourceHeaderRow = sourceSheet2.getRow(0) ?: throw IllegalArgumentException("HeaderRow is not created")
@@ -109,11 +111,11 @@ class ProcessDqubeExcel : ProcessExcelService {
             val sourceRow = sourceSheet2.getRow(i) ?: continue
             val elementHashMap: HashMap<String, String> = hashMapOf()
 
-            if (sourceRow.getCell(5).toString().isNotBlank()) {
+             if (sourceRow.getCell(5).toString().isNotBlank()) {
                 for (j in 0 until sourceHeaderRow.physicalNumberOfCells) {
-
                     val sourceHeaderCell = sourceHeaderRow.getCell(j).toString()
-                    val sourceCell = sourceRow.getCell(j).toString()
+
+                    val sourceCell = sourceRow.getCell(j)?.toString() ?: ""
 
                     if (sourceHeaderCell == "DBMS") {
                         elementHashMap["DBMS명"] = sourceCell
@@ -139,6 +141,8 @@ class ProcessDqubeExcel : ProcessExcelService {
                         elementHashMap["오류제외데이터"] = sourceCell
                     } else if (sourceHeaderCell.contains("의견")) {
                         elementHashMap["의견"] = sourceCell
+                    } else{
+                        continue
                     }
 
                 }

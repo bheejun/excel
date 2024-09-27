@@ -2,13 +2,12 @@ package wise.co.kr.excel_processor.service
 
 import jakarta.transaction.Transactional
 import org.apache.poi.ss.usermodel.WorkbookFactory
-import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.springframework.stereotype.Service
-import org.springframework.web.multipart.MultipartFile
 import wise.co.kr.excel_processor.dto.ResponseDto
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import kotlin.math.roundToInt
 
 
@@ -35,7 +34,7 @@ class ExcelProcessServiceImpl(
                 "파일명",
                 "기관명",
                 "시스템명",
-                "DB명",
+                "DBMS명",
                 "DB서비스명",
                 "DB종류",
                 "버전",

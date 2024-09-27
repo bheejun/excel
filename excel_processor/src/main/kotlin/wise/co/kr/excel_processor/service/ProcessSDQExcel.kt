@@ -112,6 +112,7 @@ class ProcessSDQExcel : ProcessExcelService {
         //검증룰 명이 존재하는 row 의 테이블명, 컬럼명, 데이터타입, 검증룰명,품질지표명, 검증룰, 오류제외데이터, 의견 가져오기
         //source sheet 에서 row 를 기준으로 반복문을 돌면서 일치하는 단어가 있는 헤더 기준 셀을 복사해서 value 로 집어넣기
         val targetSheet3 = targetWorkbook.getSheetAt(3) ?: throw IllegalArgumentException("Target Sheet 2 not found")
+        println(excelName)
 
         for (i in 1 until sourceSheet2.physicalNumberOfRows) {
             val sourceHeaderRow = sourceSheet2.getRow(0) ?: throw IllegalArgumentException("HeaderRow is not created")
@@ -122,7 +123,9 @@ class ProcessSDQExcel : ProcessExcelService {
             if (sourceRow.getCell(5).toString().isNotBlank()) {
                 for (j in 0 until sourceHeaderRow.physicalNumberOfCells) {
                     val sourceHeaderCell = sourceHeaderRow.getCell(j).toString()
-                    val sourceCell = sourceRow.getCell(j).toString()
+
+                    val sourceCell = sourceRow.getCell(j)?.toString() ?: ""
+
 
                     elementHashMap["DBMS명"] = dataHashMap0["DBMS명"].toString()
                     elementHashMap["스키마명"] = dataHashMap0["DB서비스명"].toString()
@@ -132,16 +135,18 @@ class ProcessSDQExcel : ProcessExcelService {
                         elementHashMap["컬럼명"] = sourceCell
                     } else if (sourceHeaderCell == "데이터타입") {
                         elementHashMap["데이터타입"] = sourceCell
-                    } else if (sourceHeaderCell == "진단기준명") {
+                    } else if (sourceHeaderCell == "검증룰명" || sourceHeaderCell == "진단기준명") {
                         elementHashMap["검증룰명"] = sourceCell
                     } else if (sourceHeaderCell == "도메인") {
                         elementHashMap["품질지표명"] = sourceCell
-                    } else if (sourceHeaderCell == "진단기준") {
+                    } else if (sourceHeaderCell == "검증형식" || sourceHeaderCell == "진단기준") {
                         elementHashMap["검증룰"] = sourceCell
                     } else if (sourceHeaderCell == "오류제외데이터") {
                         elementHashMap["오류제외데이터"] = sourceCell
                     } else if (sourceHeaderCell.contains("의견")) {
                         elementHashMap["의견"] = sourceCell
+                    } else{
+                        continue
                     }
 
                 }

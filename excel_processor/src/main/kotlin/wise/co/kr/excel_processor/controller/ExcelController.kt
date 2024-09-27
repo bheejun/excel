@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import wise.co.kr.excel_processor.service.ExcelProcessService
+import wise.co.kr.excel_processor.service.UnzipService
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.zip.ZipEntry
@@ -17,11 +18,11 @@ import java.util.zip.ZipOutputStream
 @RestController
 @RequestMapping("/excel")
 class ExcelController(
-    private val excelProcessService: ExcelProcessService
+    private val excelProcessService: ExcelProcessService,
+    private val unzipService: UnzipService
 ) {
     @GetMapping("/upload")
     fun uploadExcel(@RequestParam("path") path: String): ResponseEntity<ByteArrayResource> {
-        val startTime = System.currentTimeMillis()
         val directory = File(path)
 
 
@@ -52,6 +53,37 @@ class ExcelController(
             .contentType(MediaType.APPLICATION_OCTET_STREAM)
             .contentLength(zipBytes.size.toLong())
             .body(resource)
+    }
+
+    @GetMapping("/unzip")
+    fun unzipAndRename(@RequestParam("path") path: String): ResponseEntity<ByteArrayResource>{
+
+        val directory = File(path)
+
+        val resultZipByteArray = unzipService.unzipAndRenameService(directory)
+
+        val resource = ByteArrayResource(resultZipByteArray)
+
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=result.zip")
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .contentLength(resultZipByteArray.size.toLong())
+            .body(resource)
+
+    }
+
+    @GetMapping("/scan")
+    fun scanDirectoryAndGetReport(@RequestParam("path") path: String): ResponseEntity<ByteArrayResource>{
+        val resultZip= unzipService.scanAndFindResultReport(path)
+        val resource = ByteArrayResource(resultZip)
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=result.zip")
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .contentLength(resultZip.size.toLong())
+            .body(resource)
+
     }
 }
 

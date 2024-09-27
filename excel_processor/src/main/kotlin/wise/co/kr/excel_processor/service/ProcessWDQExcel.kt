@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DateUtil
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.Workbook
+import java.time.format.DateTimeFormatter
 
 @Service
 class ProcessWDQExcel:ProcessExcelService {
@@ -96,32 +97,52 @@ class ProcessWDQExcel:ProcessExcelService {
         //검증룰 명이 존재하는 row 의 테이블명, 컬럼명, 데이터타입, 검증룰명,품질지표명, 검증룰, 오류제외데이터, 의견 가져오기
         //source sheet 에서 row 를 기준으로 반복문을 돌면서 일치하는 단어가 있는 헤더 기준 셀을 복사해서 value 로 집어넣기
         val targetSheet3 = targetWorkbook.getSheetAt(3) ?: throw IllegalArgumentException("Target Sheet 2 not found")
+        println(excelName)
 
         for (i in 1 until sourceSheet2.physicalNumberOfRows) {
-            val sourceHeaderRowList : MutableList<String> = mutableListOf()
-            sourceSheet2.getRow(0).forEach { cell -> sourceHeaderRowList.add(cell.toString()) }
-            val targetHeaderRow = targetSheet3.getRow(0) ?: throw IllegalArgumentException("TargetHeaderRow is not created")
+            val sourceHeaderRow = sourceSheet2.getRow(0) ?: throw IllegalArgumentException("HeaderRow is not created")
+            val targetSourceHeaderRow = targetWorkbook.getSheetAt(3).getRow(0)
             val sourceRow = sourceSheet2.getRow(i) ?: continue
             val elementHashMap: HashMap<String, String> = hashMapOf()
 
             if (sourceRow.getCell(6).toString().isNotBlank()) {
+                for (j in 0 until sourceHeaderRow.physicalNumberOfCells) {
+                    val sourceHeaderCell = sourceHeaderRow.getCell(j).toString()
 
-                for (j in 0 until sourceHeaderRowList.size) {
-                    if(targetHeaderRow.getCell(j).toString().contains("의견")){
-                        elementHashMap["의견"] = sourceRow.getCell(j).toString()
-                    }else if(sourceHeaderRowList.contains(targetHeaderRow.getCell(j).toString())){
-                        //sourceSheet2의 헤더로우에 해당 key를 가진 cell 인덱스를 찾아서 넣는다
-                        elementHashMap[targetHeaderRow.getCell(j).toString()] = sourceRow.getCell(
-                            sourceHeaderRowList.indexOf(targetHeaderRow.getCell(j).toString())
-                        ).toString()
+                    val sourceCell = sourceRow.getCell(j)?.toString() ?: ""
+
+
+                    elementHashMap["DBMS명"] = dataHashMap0["DBMS명"].toString()
+                    elementHashMap["스키마명"] = dataHashMap0["DB서비스명"].toString()
+                    if (sourceHeaderCell == "테이블명") {
+                        elementHashMap["테이블명"] = sourceCell
+                    } else if (sourceHeaderCell == "컬럼명") {
+                        elementHashMap["컬럼명"] = sourceCell
+                    } else if (sourceHeaderCell == "데이터타입") {
+                        elementHashMap["데이터타입"] = sourceCell
+                    } else if (sourceHeaderCell == "검증룰명") {
+                        elementHashMap["검증룰명"] = sourceCell
+                    } else if (sourceHeaderCell == "품질지표명") {
+                        elementHashMap["품질지표명"] = sourceCell
+                    } else if (sourceHeaderCell == "검증룰") {
+                        elementHashMap["검증룰"] = sourceCell
+                    } else if (sourceHeaderCell == "오류제외데이터") {
+                        elementHashMap["오류제외데이터"] = sourceCell
+                    } else if (sourceHeaderCell.contains("의견")) {
+                        elementHashMap["의견"] = sourceCell
+                    } else{
+                        continue
                     }
                 }
 
                 val targetRow = targetSheet3.createRow(targetSheet3.physicalNumberOfRows)
 
-                for (k in 0 until targetHeaderRow.physicalNumberOfCells) {
-                    targetRow.createCell(k).setCellValue(
-                            elementHashMap[targetHeaderRow.getCell(k).toString()]
+                for (k in 0 until targetSourceHeaderRow.physicalNumberOfCells) {
+                    targetRow
+                        .createCell(k).setCellValue(
+                            elementHashMap.getValue(
+                                targetSheet3.getRow(0).getCell(k).toString()
+                            )
                         )
                 }
 
@@ -193,17 +214,11 @@ class ProcessWDQExcel:ProcessExcelService {
                             val lastCell = sourceSheet.getRow(i).getCell(cellIndex)
                             if (lastCell != null && getCellValueAsString(lastCell).isNotBlank()) {
                                 when (cellValue) {
-                                    "진단건수" -> {
-                                        resultMap["총 진단건수"] = getCellValueAsString(lastCell)
-                                    }
+                                    "진단건수" -> resultMap["총 진단건수"] = getCellValueAsString(lastCell)
 
-                                    "오류건수" -> {
-                                        resultMap["총 오류건수"] = getCellValueAsString(lastCell)
-                                    }
+                                    "오류건수" -> resultMap["총 오류건수"] = getCellValueAsString(lastCell)
 
-                                    "오류율" -> {
-                                        resultMap["총 오류율"] = getCellValueAsString(lastCell)
-                                    }
+                                    "오류율" -> resultMap["총 오류율"] = getCellValueAsString(lastCell)
                                 }
                                 break
                             }
@@ -247,6 +262,8 @@ class ProcessWDQExcel:ProcessExcelService {
     }
 
     private fun getCellValueAsString(cell: Cell): String {
+
+
         return when (cell.cellType) {
             CellType.STRING -> cell.stringCellValue
             CellType.NUMERIC -> {
@@ -258,7 +275,20 @@ class ProcessWDQExcel:ProcessExcelService {
             }
 
             CellType.BOOLEAN -> cell.booleanCellValue.toString()
-            CellType.FORMULA -> cell.cellFormula
+            CellType.FORMULA -> {
+                when (cell.cachedFormulaResultType) {
+                    CellType.STRING -> cell.stringCellValue
+                    CellType.NUMERIC -> {
+                        if (DateUtil.isCellDateFormatted(cell)) {
+                            cell.localDateTimeCellValue.toString()
+                        } else {
+                            cell.numericCellValue.toString()
+                        }
+                    }
+                    CellType.BOOLEAN -> cell.booleanCellValue.toString()
+                    else -> cell.stringCellValue // 기타 경우 문자열로 처리
+                }
+            }
             else -> ""
         }
     }
